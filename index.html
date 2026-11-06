@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gsm-opruimer – verbindingstest</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f24; --muted:#5f6670; --accent:#2563eb; --ok:#15803d; --err:#b91c1c; --border:#e3e6ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111418; --card:#1a1e24; --text:#e8eaed; --muted:#9aa3ad; --accent:#60a5fa; --ok:#4ade80; --err:#f87171; --border:#2a3038; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width:640px; margin:40px auto; padding:0 16px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+  ol { margin:0; padding-left:20px; }
+  li { margin:4px 0; }
+  code { background:var(--border); padding:1px 5px; border-radius:4px; font-size:.9em; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:12px 20px; font-size:1rem; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  #status { margin-top:12px; font-weight:600; }
+  .ok { color:var(--ok); } .err { color:var(--err); }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:6px 0; border-bottom:1px solid var(--border); }
+  td:first-child { color:var(--muted); width:45%; }
+  pre { white-space:pre-wrap; font-size:.85rem; color:var(--muted); margin:8px 0 0; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Gsm-opruimer</h1>
+  <p class="sub">Stap 1 – verbindingstest. Er wordt niets gewist of gewijzigd.</p>
+
+  <div class="card">
+    <strong>Voor je begint</strong>
+    <ol>
+      <li>Sluit adb af op je pc: open PowerShell en typ <code>adb kill-server</code>.</li>
+      <li>Sluit je S22 aan met usb en ontgrendel hem.</li>
+      <li>Gebruik Chrome of Edge.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <button id="connect">Verbind met gsm</button>
+    <div id="status"></div>
+    <pre id="detail"></pre>
+  </div>
+
+  <div class="card hidden" id="result">
+    <strong>Gegevens</strong>
+    <table id="info"></table>
+  </div>
+</main>
+
+<script type="module">
+const V = "1.1.0";
+const $ = id => document.getElementById(id);
+const status = (msg, cls = "") => { $("status").textContent = msg; $("status").className = cls; };
+const detail = msg => { $("detail").textContent = msg || ""; };
+
+if (!("usb" in navigator)) {
+  status("Deze browser ondersteunt geen WebUSB. Gebruik Chrome of Edge.", "err");
+  $("connect").disabled = true;
+}
+
+async function sh(adb, cmd) {
+  const s = adb.subprocess;
+  if (s.noneProtocol?.spawnWaitText) return (await s.noneProtocol.spawnWaitText(cmd)).trim();
+  if (s.spawnAndWaitLegacy) return (await s.spawnAndWaitLegacy(cmd)).trim();
+  throw new Error("Geen ondersteunde shell-functie gevonden.");
+}
+
+function gb(kb) { return (kb / 1024 / 1024).toFixed(1) + " GB"; }
+
+function row(label, value) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td></td><td></td>`;
+  tr.children[0].textContent = label;
+  tr.children[1].textContent = value;
+  $("info").appendChild(tr);
+}
+
+$("connect").addEventListener("click", async () => {
+  $("connect").disabled = true;
+  $("result").classList.add("hidden");
+  $("info").innerHTML = "";
+  detail("");
+  try {
+    status("Bibliotheek laden…");
+    const [{ Adb, AdbDaemonTransport }, { AdbDaemonWebUsbDeviceManager }, cred] = await Promise.all([
+      import(`https://esm.sh/@yume-chan/adb@${V}`),
+      import(`https://esm.sh/@yume-chan/adb-daemon-webusb@${V}`),
+      import(`https://esm.sh/@yume-chan/adb-credential-web@${V}`),
+    ]);
+    const CredentialStore = cred.default ?? cred.AdbWebCredentialStore;
+
+    const manager = AdbDaemonWebUsbDeviceManager.BROWSER;
+    if (!manager) throw new Error("WebUSB niet beschikbaar.");
+
+    status("Kies je gsm in het venster van de browser…");
+    const device = await manager.requestDevice();
+    if (!device) { status("Geen toestel gekozen.", "err"); return; }
+
+    status("Verbinden via usb…");
+    let connection;
+    try {
+      connection = await device.connect();
+    } catch (e) {
+      status("Kon de usb-verbinding niet openen.", "err");
+      detail("Meestal is adb.exe op je pc nog actief. Typ in PowerShell: adb kill-server, trek de kabel uit en weer in, en probeer opnieuw.\n\nTechnische fout: " + (e?.message ?? e));
+      return;
+    }
+
+    status("Wacht op toestemming: tik op je gsm op 'Allow' (Toestaan)…");
+    const transport = await AdbDaemonTransport.authenticate({
+      serial: device.serial,
+      connection,
+      credentialStore: new CredentialStore("Gsm-opruimer"),
+    });
+    const adb = new Adb(transport);
+
+    status("Gegevens ophalen…");
+    const model = await sh(adb, "getprop ro.product.model");
+    const android = await sh(adb, "getprop ro.build.version.release");
+    const df = await sh(adb, "df -k /data | tail -n 1");
+    const p = df.split(/\s+/);
+    const [total, used, free] = [Number(p[1]), Number(p[2]), Number(p[3])];
+
+    row("Model", model);
+    row("Android-versie", android);
+    if (total) {
+      row("Opslag totaal", gb(total));
+      row("Gebruikt", gb(used));
+      row("Vrij", gb(free));
+    } else {
+      row("Opslag (ruwe uitvoer)", df);
+    }
+    $("result").classList.remove("hidden");
+    status("Verbonden ✔", "ok");
+    await adb.close();
+  } catch (e) {
+    console.error(e);
+    status("Er ging iets mis.", "err");
+    detail(String(e?.stack ?? e));
+  } finally {
+    $("connect").disabled = false;
+  }
+});
+</script>
+</body>
+</html>
