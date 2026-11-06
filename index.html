@@ -3,152 +3,526 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gsm-opruimer – verbindingstest</title>
+<title>Gsm-opruimer</title>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f24; --muted:#5f6670; --accent:#2563eb; --ok:#15803d; --err:#b91c1c; --border:#e3e6ea; }
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f24; --muted:#5f6670; --accent:#2563eb; --ok:#15803d; --warn:#b45309; --err:#b91c1c; --border:#e3e6ea; --bar:#dbe2ea; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111418; --card:#1a1e24; --text:#e8eaed; --muted:#9aa3ad; --accent:#60a5fa; --ok:#4ade80; --err:#f87171; --border:#2a3038; }
+    :root { --bg:#111418; --card:#1a1e24; --text:#e8eaed; --muted:#9aa3ad; --accent:#60a5fa; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; --border:#2a3038; --bar:#2a3038; }
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, "Segoe UI", sans-serif; }
-  main { max-width:640px; margin:40px auto; padding:0 16px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,"Segoe UI",sans-serif; padding-bottom:90px; }
+  main { max-width:900px; margin:32px auto; padding:0 16px; }
   h1 { font-size:1.5rem; margin:0 0 4px; }
-  .sub { color:var(--muted); margin:0 0 24px; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+  h2 { font-size:1.1rem; margin:0 0 4px; }
+  .sub, .muted { color:var(--muted); }
+  .sub { margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:16px; }
   ol { margin:0; padding-left:20px; }
-  li { margin:4px 0; }
   code { background:var(--border); padding:1px 5px; border-radius:4px; font-size:.9em; }
-  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:12px 20px; font-size:1rem; cursor:pointer; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 18px; font-size:.95rem; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button.danger { background:var(--err); }
   button:disabled { opacity:.5; cursor:default; }
-  #status { margin-top:12px; font-weight:600; }
-  .ok { color:var(--ok); } .err { color:var(--err); }
-  table { width:100%; border-collapse:collapse; }
-  td { padding:6px 0; border-bottom:1px solid var(--border); }
-  td:first-child { color:var(--muted); width:45%; }
-  pre { white-space:pre-wrap; font-size:.85rem; color:var(--muted); margin:8px 0 0; }
-  .hidden { display:none; }
+  #status { margin-top:10px; font-weight:600; }
+  .ok { color:var(--ok); } .err { color:var(--err); } .warn { color:var(--warn); }
+  pre { white-space:pre-wrap; font-size:.8rem; color:var(--muted); margin:8px 0 0; }
+  .hidden { display:none !important; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th { text-align:left; color:var(--muted); font-weight:500; padding:6px 4px; border-bottom:1px solid var(--border); }
+  td { padding:6px 4px; border-bottom:1px solid var(--border); vertical-align:top; word-break:break-all; }
+  td.num, th.num { text-align:right; white-space:nowrap; word-break:normal; }
+  .bar { height:14px; background:var(--bar); border-radius:7px; overflow:hidden; display:flex; margin:10px 0 6px; }
+  .bar span { display:block; height:100%; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:.85rem; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; }
+  .sugg { border-top:1px solid var(--border); padding:12px 0; }
+  .sugg:first-of-type { border-top:0; }
+  .sugg-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+  .sugg-head b { font-size:1rem; }
+  .why { color:var(--muted); font-size:.88rem; margin:2px 0 6px; }
+  details summary { cursor:pointer; color:var(--accent); font-size:.88rem; }
+  .items { margin-top:6px; }
+  .item { display:flex; gap:8px; align-items:flex-start; padding:3px 0; font-size:.88rem; }
+  .item .p { flex:1; word-break:break-all; }
+  .item .s { white-space:nowrap; color:var(--muted); }
+  .tree .row { display:flex; gap:8px; align-items:center; padding:3px 0; font-size:.9rem; }
+  .tree .tog { width:18px; text-align:center; cursor:pointer; color:var(--muted); user-select:none; }
+  .tree .name { flex:1; word-break:break-all; }
+  .tree .size { white-space:nowrap; color:var(--muted); min-width:70px; text-align:right; }
+  .tree .kids { margin-left:22px; }
+  .flag { color:var(--warn); font-weight:600; }
+  #selbar { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--border); padding:12px 16px; }
+  #selbar .in { max-width:900px; margin:0 auto; display:flex; gap:12px; align-items:center; justify-content:space-between; }
+  input[type=checkbox] { width:16px; height:16px; margin-top:2px; }
 </style>
 </head>
 <body>
 <main>
   <h1>Gsm-opruimer</h1>
-  <p class="sub">Stap 1 – verbindingstest. Er wordt niets gewist of gewijzigd.</p>
+  <p class="sub">Analyse en opruimen van je gsm via usb. Gegevens blijven in deze browser.</p>
 
-  <div class="card">
+  <div class="card" id="intro">
     <strong>Voor je begint</strong>
     <ol>
-      <li>Sluit adb af op je pc: open PowerShell en typ <code>adb kill-server</code>.</li>
+      <li>Zorg dat adb op je pc niet draait (PowerShell: <code>taskkill /IM adb.exe /F</code>).</li>
       <li>Sluit je S22 aan met usb en ontgrendel hem.</li>
       <li>Gebruik Chrome of Edge.</li>
     </ol>
   </div>
 
   <div class="card">
-    <button id="connect">Verbind met gsm</button>
+    <button id="connect">Verbind en analyseer</button>
+    <button id="rescan" class="secondary hidden">Opnieuw analyseren</button>
     <div id="status"></div>
     <pre id="detail"></pre>
   </div>
 
-  <div class="card hidden" id="result">
-    <strong>Gegevens</strong>
-    <table id="info"></table>
+  <div id="out" class="hidden">
+    <div class="card" id="overview"></div>
+    <div class="card" id="suggestions"></div>
+    <div class="card" id="apps"></div>
+    <div class="card" id="folders"></div>
+    <div class="card" id="files"></div>
+    <div class="card" id="tips"></div>
   </div>
 </main>
 
+<div id="selbar" class="hidden">
+  <div class="in">
+    <span id="selinfo"></span>
+    <span>
+      <button id="selclear" class="secondary">Selectie wissen</button>
+      <button id="seldel" class="danger">Verwijder geselecteerde</button>
+    </span>
+  </div>
+</div>
+
 <script type="module">
 const V = "1.1.0";
+const ROOT = "/storage/emulated/0";
 const $ = id => document.getElementById(id);
-const status = (msg, cls = "") => { $("status").textContent = msg; $("status").className = cls; };
-const detail = msg => { $("detail").textContent = msg || ""; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const status = (m, cls = "") => { $("status").textContent = m; $("status").className = cls; };
+const detail = m => { $("detail").textContent = m || ""; };
+const rel = p => p.startsWith(ROOT) ? p.slice(ROOT.length) || "/" : p;
 
-if (!("usb" in navigator)) {
-  status("Deze browser ondersteunt geen WebUSB. Gebruik Chrome of Edge.", "err");
-  $("connect").disabled = true;
+function fmt(bytes) {
+  if (bytes == null || isNaN(bytes)) return "–";
+  const u = ["B","KB","MB","GB"]; let i = 0;
+  while (bytes >= 1024 && i < 3) { bytes /= 1024; i++; }
+  return (i >= 2 ? bytes.toFixed(1) : Math.round(bytes)) + " " + u[i];
+}
+const ageDays = epoch => Math.floor((Date.now() / 1000 - epoch) / 86400);
+function fmtAge(epoch) {
+  const d = ageDays(epoch);
+  if (d < 1) return "vandaag";
+  if (d < 60) return d + " d geleden";
+  if (d < 730) return Math.round(d / 30) + " mnd geleden";
+  return (d / 365).toFixed(1) + " jaar geleden";
 }
 
-async function sh(adb, cmd) {
+const NAMES = {
+  "com.whatsapp":"WhatsApp","com.instagram.android":"Instagram","com.spotify.music":"Spotify",
+  "com.google.android.youtube":"YouTube","com.zhiliaoapp.musically":"TikTok","com.snapchat.android":"Snapchat",
+  "com.facebook.katana":"Facebook","com.facebook.orca":"Messenger","org.telegram.messenger":"Telegram",
+  "com.android.chrome":"Chrome","com.google.android.apps.photos":"Google Foto's","com.netflix.mediaclient":"Netflix",
+  "com.soundcloud.android":"SoundCloud","com.google.android.gm":"Gmail","com.google.android.apps.maps":"Google Maps",
+  "com.sec.android.gallery3d":"Samsung Galerij","com.samsung.android.messaging":"Samsung Berichten",
+  "com.discord":"Discord","com.twitter.android":"X (Twitter)","com.pinterest":"Pinterest","com.linkedin.android":"LinkedIn",
+  "com.amazon.avod.thirdpartyclient":"Prime Video","com.disney.disneyplus":"Disney+","be.vrt.vrtnu":"VRT MAX",
+};
+const appName = pkg => NAMES[pkg] || pkg;
+
+// ---------- ADB ----------
+let adb = null;
+let scan = null;
+
+async function sh(cmd) {
   const s = adb.subprocess;
-  if (s.noneProtocol?.spawnWaitText) return (await s.noneProtocol.spawnWaitText(cmd)).trim();
-  if (s.spawnAndWaitLegacy) return (await s.spawnAndWaitLegacy(cmd)).trim();
+  if (s.noneProtocol?.spawnWaitText) return await s.noneProtocol.spawnWaitText(cmd);
+  if (s.spawnAndWaitLegacy) return await s.spawnAndWaitLegacy(cmd);
   throw new Error("Geen ondersteunde shell-functie gevonden.");
 }
 
-function gb(kb) { return (kb / 1024 / 1024).toFixed(1) + " GB"; }
+async function connect() {
+  status("Bibliotheek laden…");
+  const [{ Adb, AdbDaemonTransport }, { AdbDaemonWebUsbDeviceManager }, cred] = await Promise.all([
+    import(`https://esm.sh/@yume-chan/adb@${V}`),
+    import(`https://esm.sh/@yume-chan/adb-daemon-webusb@${V}`),
+    import(`https://esm.sh/@yume-chan/adb-credential-web@${V}`),
+  ]);
+  const CredentialStore = cred.default ?? cred.AdbWebCredentialStore;
+  const manager = AdbDaemonWebUsbDeviceManager.BROWSER;
+  if (!manager) throw new Error("WebUSB niet beschikbaar in deze browser.");
 
-function row(label, value) {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `<td></td><td></td>`;
-  tr.children[0].textContent = label;
-  tr.children[1].textContent = value;
-  $("info").appendChild(tr);
+  status("Kies je gsm in het venster van de browser…");
+  const device = await manager.requestDevice();
+  if (!device) throw new Error("Geen toestel gekozen.");
+
+  status("Verbinden via usb…");
+  let connection;
+  try { connection = await device.connect(); }
+  catch (e) { throw new Error("Kon de usb-verbinding niet openen. Draait adb.exe nog op je pc? Trek de kabel uit en weer in en probeer opnieuw.\n" + (e?.message ?? e)); }
+
+  status("Wacht op toestemming: tik op je gsm op 'Allow'…");
+  const transport = await AdbDaemonTransport.authenticate({
+    serial: device.serial, connection, credentialStore: new CredentialStore("Gsm-opruimer"),
+  });
+  adb = new Adb(transport);
+  transport.disconnected?.then?.(() => { adb = null; status("Verbinding verbroken. Klik opnieuw op 'Verbind en analyseer'.", "err"); });
 }
 
-$("connect").addEventListener("click", async () => {
-  $("connect").disabled = true;
-  $("result").classList.add("hidden");
-  $("info").innerHTML = "";
-  detail("");
-  try {
-    status("Bibliotheek laden…");
-    const [{ Adb, AdbDaemonTransport }, { AdbDaemonWebUsbDeviceManager }, cred] = await Promise.all([
-      import(`https://esm.sh/@yume-chan/adb@${V}`),
-      import(`https://esm.sh/@yume-chan/adb-daemon-webusb@${V}`),
-      import(`https://esm.sh/@yume-chan/adb-credential-web@${V}`),
-    ]);
-    const CredentialStore = cred.default ?? cred.AdbWebCredentialStore;
+// ---------- Metingen ----------
+async function readDf() {
+  const line = (await sh("df -k /data | tail -n 1")).trim().split(/\s+/);
+  return { total: +line[1] * 1024, used: +line[2] * 1024, free: +line[3] * 1024 };
+}
 
-    const manager = AdbDaemonWebUsbDeviceManager.BROWSER;
-    if (!manager) throw new Error("WebUSB niet beschikbaar.");
+function parseDiskstats(txt) {
+  const num = k => { const m = txt.match(new RegExp("^" + k + ":\\s*(\\d+)", "m")); return m ? +m[1] : null; };
+  const arr = k => { const m = txt.match(new RegExp("^" + k + ":\\s*\\[(.*)\\]", "m")); return m ? m[1] : null; };
+  const pk = arr("Package Names");
+  const names = pk ? pk.split(",").map(s => s.trim().replace(/^"|"$/g, "")).filter(Boolean) : [];
+  const nums = k => (arr(k) || "").split(",").map(s => +s.trim());
+  const a = nums("App Sizes"), d = nums("App Data Sizes"), c = nums("Cache Sizes");
+  const apps = names.map((p, i) => ({ pkg: p, app: a[i] || 0, data: d[i] || 0, cache: c[i] || 0 }));
+  return {
+    cats: {
+      photos: num("Photos Size"), videos: num("Videos Size"), audio: num("Audio Size"),
+      downloads: num("Downloads Size"), app: num("App Size"), appData: num("App Data Size"),
+      appCache: num("App Cache Size"), system: num("System Size"), other: num("Other Size"),
+    },
+    apps,
+  };
+}
 
-    status("Kies je gsm in het venster van de browser…");
-    const device = await manager.requestDevice();
-    if (!device) { status("Geen toestel gekozen.", "err"); return; }
-
-    status("Verbinden via usb…");
-    let connection;
-    try {
-      connection = await device.connect();
-    } catch (e) {
-      status("Kon de usb-verbinding niet openen.", "err");
-      detail("Meestal is adb.exe op je pc nog actief. Typ in PowerShell: adb kill-server, trek de kabel uit en weer in, en probeer opnieuw.\n\nTechnische fout: " + (e?.message ?? e));
-      return;
-    }
-
-    status("Wacht op toestemming: tik op je gsm op 'Allow' (Toestaan)…");
-    const transport = await AdbDaemonTransport.authenticate({
-      serial: device.serial,
-      connection,
-      credentialStore: new CredentialStore("Gsm-opruimer"),
-    });
-    const adb = new Adb(transport);
-
-    status("Gegevens ophalen…");
-    const model = await sh(adb, "getprop ro.product.model");
-    const android = await sh(adb, "getprop ro.build.version.release");
-    const df = await sh(adb, "df -k /data | tail -n 1");
-    const p = df.split(/\s+/);
-    const [total, used, free] = [Number(p[1]), Number(p[2]), Number(p[3])];
-
-    row("Model", model);
-    row("Android-versie", android);
-    if (total) {
-      row("Opslag totaal", gb(total));
-      row("Gebruikt", gb(used));
-      row("Vrij", gb(free));
-    } else {
-      row("Opslag (ruwe uitvoer)", df);
-    }
-    $("result").classList.remove("hidden");
-    status("Verbonden ✔", "ok");
-    await adb.close();
-  } catch (e) {
-    console.error(e);
-    status("Er ging iets mis.", "err");
-    detail(String(e?.stack ?? e));
-  } finally {
-    $("connect").disabled = false;
+function parseDu(txt, map) {
+  for (const line of txt.split("\n")) {
+    const m = line.match(/^(\d+)\s+(\/.*)$/);
+    if (m) map.set(m[2].replace(/\/$/, ""), +m[1] * 1024);
   }
+}
+
+function parseStat(txt) {
+  const out = [];
+  for (const line of txt.split("\n")) {
+    const m = line.trim().match(/^(\d+)\|(\d+)\|(.+)$/);
+    if (m) out.push({ size: +m[1], mtime: +m[2], path: m[3] });
+  }
+  return out;
+}
+
+async function runScan() {
+  scan = { dirs: new Map() };
+  clearSelection();
+
+  status("Opslag meten…");
+  scan.df = await readDf();
+
+  status("Opslag per app ophalen…");
+  scan.ds = parseDiskstats(await sh("dumpsys diskstats"));
+
+  status("Geïnstalleerde apps ophalen…");
+  scan.pkgs = new Set((await sh("pm list packages -u")).split("\n").map(l => l.replace(/^package:/, "").trim()).filter(Boolean));
+  scan.pkgsInstalled = new Set((await sh("pm list packages")).split("\n").map(l => l.replace(/^package:/, "").trim()).filter(Boolean));
+
+  status("Mappen meten… (kan tot een minuut duren)");
+  parseDu(await sh(`du -k -d 4 ${ROOT} 2>/dev/null`), scan.dirs);
+  for (const sub of ["Android/data", "Android/media", "Android/obb"])
+    parseDu(await sh(`du -k -d 1 ${ROOT}/${sub} 2>/dev/null`), scan.dirs);
+  const wa = `${ROOT}/Android/media/com.whatsapp/WhatsApp/Media`;
+  parseDu(await sh(`du -k -d 2 '${wa}' 2>/dev/null`), scan.dirs);
+
+  status("Grootste bestanden zoeken…");
+  scan.bigFiles = parseStat(await sh(`find ${ROOT} -type f -size +52428800c -exec stat -c '%s|%Y|%n' {} + 2>/dev/null`))
+    .sort((a, b) => b.size - a.size).slice(0, 60);
+
+  status("Downloads bekijken…");
+  scan.downloads = parseStat(await sh(`find ${ROOT}/Download -type f -size +5242880c -exec stat -c '%s|%Y|%n' {} + 2>/dev/null`))
+    .sort((a, b) => b.size - a.size);
+
+  render();
+  status("Analyse klaar ✔", "ok");
+}
+
+// ---------- Selectie & verwijderen ----------
+const selected = new Map(); // path -> size
+const PROTECTED = new Set(["", "/Android", "/Android/data", "/Android/media", "/Android/obb", "/DCIM", "/Pictures",
+  "/Download", "/Documents", "/Music", "/Movies", "/Alarms", "/Notifications", "/Podcasts", "/Ringtones", "/Recordings", "/Audiobooks", "/DCIM/Camera"]);
+
+function canDelete(p) {
+  if (!p.startsWith(ROOT + "/")) return false;
+  const r = rel(p);
+  if (PROTECTED.has(r)) return false;
+  if (r.includes("/../") || r.endsWith("/..")) return false;
+  return true;
+}
+
+function cb(path, size) {
+  if (!canDelete(path)) return `<span style="width:16px;display:inline-block"></span>`;
+  const on = selected.has(path) ? "checked" : "";
+  return `<input type="checkbox" class="sel" data-path="${esc(path)}" data-size="${size}" ${on}>`;
+}
+
+function updateSelbar() {
+  let total = 0; for (const s of selected.values()) total += s;
+  $("selbar").classList.toggle("hidden", selected.size === 0);
+  $("selinfo").textContent = `${selected.size} geselecteerd · ongeveer ${fmt(total)}`;
+}
+function clearSelection() {
+  selected.clear();
+  document.querySelectorAll("input.sel").forEach(c => c.checked = false);
+  updateSelbar();
+}
+
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (!t.classList?.contains("sel")) return;
+  if (t.checked) selected.set(t.dataset.path, +t.dataset.size); else selected.delete(t.dataset.path);
+  document.querySelectorAll(`input.sel[data-path="${CSS.escape(t.dataset.path)}"]`).forEach(c => c.checked = t.checked);
+  updateSelbar();
 });
+
+const q = p => "'" + p.replace(/'/g, "'\\''") + "'";
+
+async function deleteSelected() {
+  if (!adb) { alert("Niet verbonden. Verbind eerst opnieuw."); return; }
+  // Sla paden over waarvan een bovenliggende map al geselecteerd is
+  const paths = [...selected.keys()].sort();
+  const final = paths.filter(p => !paths.some(o => o !== p && p.startsWith(o + "/")));
+  let total = 0; final.forEach(p => total += selected.get(p));
+  const list = final.slice(0, 15).map(p => "• " + rel(p)).join("\n") + (final.length > 15 ? `\n… en nog ${final.length - 15}` : "");
+  if (!confirm(`Deze ${final.length} item(s) definitief verwijderen (ongeveer ${fmt(total)})?\n\nDit gaat NIET naar een prullenbak en kan niet ongedaan gemaakt worden.\n\n${list}`)) return;
+
+  $("seldel").disabled = true;
+  const fails = [];
+  for (let i = 0; i < final.length; i++) {
+    const p = final[i];
+    if (!canDelete(p)) { fails.push(p); continue; }
+    status(`Verwijderen ${i + 1}/${final.length}…`);
+    const out = await sh(`rm -rf -- ${q(p)} 2>&1; echo "RC=$?"`);
+    if (!/RC=0\s*$/.test(out.trim())) fails.push(p + " → " + out.trim());
+  }
+  $("seldel").disabled = false;
+  const before = scan.df.free;
+  scan.df = await readDf();
+  clearSelection();
+  status(`Klaar. Vrije ruimte: ${fmt(before)} → ${fmt(scan.df.free)}`, fails.length ? "warn" : "ok");
+  detail(fails.length ? "Niet gelukt:\n" + fails.join("\n") : "Tip: klik 'Opnieuw analyseren' voor bijgewerkte cijfers.");
+  renderOverview();
+}
+
+async function trimCaches() {
+  if (!confirm("Cache van alle apps wissen?\n\nCache zijn tijdelijke bestanden. Apps maken ze opnieuw aan wanneer nodig. Je verliest geen berichten, foto's of logins.")) return;
+  status("App-cache wissen…");
+  const before = (await readDf()).free;
+  const out = await sh("pm trim-caches 999999999999 2>&1; echo RC=$?");
+  scan.df = await readDf();
+  status(`Cache gewist. Vrije ruimte: ${fmt(before)} → ${fmt(scan.df.free)}`, "ok");
+  if (!/RC=0/.test(out)) detail(out);
+  renderOverview();
+}
+
+// ---------- Weergave ----------
+function render() {
+  $("out").classList.remove("hidden");
+  renderOverview();
+  renderSuggestions();
+  renderApps();
+  renderFolders();
+  renderFiles();
+  renderTips();
+}
+
+function renderOverview() {
+  const { df, ds } = scan;
+  const c = ds.cats;
+  const parts = [
+    ["Foto's", c.photos, "#3b82f6"], ["Video's", c.videos, "#8b5cf6"], ["Audio", c.audio, "#ec4899"],
+    ["Downloads", c.downloads, "#14b8a6"],
+    ["Apps + app-gegevens", (c.app || 0) + (c.appData || 0), "#f59e0b"], ["App-cache", c.appCache, "#ef4444"],
+    ["Systeem", c.system, "#64748b"], ["Overig", c.other, "#94a3b8"],
+  ].filter(p => p[1] > 0);
+  const tot = df.total || 1;
+  const pct = Math.round(df.used / tot * 100);
+  $("overview").innerHTML = `
+    <h2>Overzicht</h2>
+    <div><b>${fmt(df.free)}</b> vrij van ${fmt(df.total)} <span class="muted">(${pct}% gebruikt)</span>
+      ${df.free < 3 * 1024 ** 3 ? ' · <span class="flag">bijna vol</span>' : ""}</div>
+    <div class="bar">${parts.map(p => `<span title="${esc(p[0])}: ${fmt(p[1])}" style="width:${p[1] / tot * 100}%;background:${p[2]}"></span>`).join("")}</div>
+    <div class="legend">${parts.map(p => `<span><i style="background:${p[2]}"></i>${esc(p[0])} ${fmt(p[1])}</span>`).join("")}</div>
+    <p class="muted" style="font-size:.8rem;margin:8px 0 0">De verdeling komt van Android zelf en kan tot een dag oud zijn.</p>`;
+}
+
+function sugg(title, why, items, extraHtml = "") {
+  if (!items.length && !extraHtml) return "";
+  const total = items.reduce((s, i) => s + i.size, 0);
+  const allBtn = items.length ? `<button class="secondary" data-selall='${esc(JSON.stringify(items.map(i => [i.path, i.size])))}' style="padding:4px 10px;font-size:.8rem">Alles aanvinken</button>` : "";
+  return `<div class="sugg">
+    <div class="sugg-head"><b>${esc(title)}</b><span>${items.length ? "± " + fmt(total) : ""}</span></div>
+    <div class="why">${why}</div>
+    ${extraHtml}
+    ${items.length ? `<details><summary>${items.length} item(s) bekijken</summary>
+      <div style="margin:6px 0">${allBtn}</div>
+      <div class="items">${items.map(i => `<div class="item">${cb(i.path, i.size)}<span class="p">${esc(i.label || rel(i.path))}</span><span class="s">${fmt(i.size)}</span></div>`).join("")}</div>
+    </details>` : ""}
+  </div>`;
+}
+
+const dirSize = p => scan.dirs.get(p) || 0;
+const childrenOf = p => [...scan.dirs.entries()].filter(([k]) => k.startsWith(p + "/") && !k.slice(p.length + 1).includes("/"));
+
+function renderSuggestions() {
+  const out = [];
+
+  // 1. Restanten van verwijderde apps
+  const leftovers = [];
+  for (const sub of ["Android/data", "Android/media", "Android/obb"]) {
+    for (const [p, s] of childrenOf(`${ROOT}/${sub}`)) {
+      const pkg = p.split("/").pop();
+      if (pkg.startsWith(".")) continue;
+      if (!scan.pkgs.has(pkg) && s > 1024 * 1024) leftovers.push({ path: p, size: s, label: `${sub}/${pkg}` });
+    }
+  }
+  leftovers.sort((a, b) => b.size - a.size);
+  out.push(sugg("Restanten van verwijderde apps", "Deze mappen horen bij apps die niet meer op je gsm staan. Ze worden door niets meer gebruikt.", leftovers));
+
+  // 2. App-cache
+  const cache = scan.ds.cats.appCache;
+  if (cache > 100 * 1024 * 1024) {
+    const top = [...scan.ds.apps].sort((a, b) => b.cache - a.cache).slice(0, 5).filter(a => a.cache > 50 * 1024 * 1024);
+    out.push(sugg("App-cache", `Tijdelijke bestanden van apps, samen ongeveer <b>${fmt(cache)}</b>. Veilig te wissen: apps maken ze opnieuw aan.${top.length ? " Grootste: " + top.map(a => `${esc(appName(a.pkg))} (${fmt(a.cache)})`).join(", ") + "." : ""}`,
+      [], `<button id="trim" class="secondary" style="padding:6px 12px;font-size:.85rem">Alle app-cache wissen</button>`));
+  }
+
+  // 3. WhatsApp verzonden media
+  const waM = `${ROOT}/Android/media/com.whatsapp/WhatsApp/Media`;
+  const sent = [...scan.dirs.entries()].filter(([k, s]) => k.startsWith(waM + "/") && /\/Sent$/.test(k) && s > 1024 * 1024)
+    .map(([k, s]) => ({ path: k, size: s, label: "WhatsApp: " + k.slice(waM.length + 1) }));
+  out.push(sugg("WhatsApp: verzonden media", "Kopieën van foto's en video's die jij verstuurd hebt. Het origineel staat meestal nog in je galerij.", sent));
+
+  // 4. WhatsApp grote mappen (ter info, aanvinkbaar)
+  const waDirs = childrenOf(waM).filter(([, s]) => s > 50 * 1024 * 1024).map(([k, s]) => ({ path: k, size: s, label: "WhatsApp: " + k.slice(waM.length + 1) })).sort((a, b) => b.size - a.size);
+  out.push(sugg("WhatsApp: ontvangen media", "Alles wat je in chats ontvangen hebt (inclusief groepen). Bekijk zelf of je dit nog nodig hebt; video's zijn meestal de grootste.", waDirs));
+
+  // 5. Downloads: installatiebestanden en archieven, of oud
+  const dl = scan.downloads.filter(f => /\.(apk|xapk|zip|rar|7z|iso|exe|msi)$/i.test(f.path) || ageDays(f.mtime) > 180)
+    .map(f => ({ path: f.path, size: f.size, label: `${rel(f.path)} · ${fmtAge(f.mtime)}` }));
+  out.push(sugg("Downloads: installatiebestanden, archieven en oude bestanden", "Installatiebestanden (.apk) en archieven heb je na gebruik meestal niet meer nodig. Ook bestanden ouder dan 6 maanden staan hier.", dl));
+
+  // 6. Schermopnames
+  const rec = [`${ROOT}/DCIM/Screen recordings`, `${ROOT}/Movies/Screen recordings`, `${ROOT}/DCIM/Screenrecorder`]
+    .filter(p => dirSize(p) > 1024 * 1024).map(p => ({ path: p, size: dirSize(p) }));
+  out.push(sugg("Schermopnames", "Vaak eenmalig gebruikt en groot.", rec));
+
+  // 7. Miniaturen
+  const thumbs = [`${ROOT}/DCIM/.thumbnails`, `${ROOT}/Pictures/.thumbnails`].filter(p => dirSize(p) > 1024 * 1024).map(p => ({ path: p, size: dirSize(p) }));
+  out.push(sugg("Miniatuurvoorbeelden", "Kleine voorbeeldafbeeldingen die de galerij zelf opnieuw maakt.", thumbs));
+
+  // 8. Grote video's (ouder dan 1 jaar)
+  const oldVids = scan.bigFiles.filter(f => /\.(mp4|mov|mkv|3gp|avi)$/i.test(f.path) && ageDays(f.mtime) > 365)
+    .map(f => ({ path: f.path, size: f.size, label: `${rel(f.path)} · ${fmtAge(f.mtime)}` }));
+  out.push(sugg("Grote video's ouder dan een jaar", "Video's nemen het meeste plaats in. Controleer eerst of ze in Google Foto's of elders bewaard zijn.", oldVids));
+
+  const html = out.filter(Boolean).join("");
+  $("suggestions").innerHTML = `<h2>Suggesties</h2><p class="why">Vink aan wat weg mag. Niets wordt verwijderd zonder bevestiging.</p>${html || '<p class="muted">Geen duidelijke kandidaten gevonden.</p>'}`;
+  $("trim")?.addEventListener("click", trimCaches);
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-selall]");
+  if (!b) return;
+  for (const [p, s] of JSON.parse(b.dataset.selall)) if (canDelete(p)) selected.set(p, s);
+  document.querySelectorAll("input.sel").forEach(c => c.checked = selected.has(c.dataset.path));
+  updateSelbar();
+});
+
+function renderApps() {
+  const apps = scan.ds.apps.map(a => {
+    const ext = dirSize(`${ROOT}/Android/data/${a.pkg}`) + dirSize(`${ROOT}/Android/media/${a.pkg}`);
+    return { ...a, ext, total: a.app + a.data + a.cache };
+  }).sort((a, b) => b.total - a.total).slice(0, 30);
+  const rows = apps.map(a => {
+    const flags = [];
+    if (a.cache > 500 * 1024 ** 2) flags.push("veel cache");
+    if (a.data > 3 * 1024 ** 3) flags.push("veel gegevens");
+    if (!scan.pkgsInstalled.has(a.pkg) && scan.pkgs.has(a.pkg)) flags.push("verwijderd, gegevens bewaard");
+    return `<tr><td>${esc(appName(a.pkg))}${appName(a.pkg) !== a.pkg ? `<div class="muted" style="font-size:.75rem">${esc(a.pkg)}</div>` : ""}
+      ${flags.length ? `<div class="flag" style="font-size:.8rem">${flags.join(" · ")}</div>` : ""}</td>
+      <td class="num">${fmt(a.app)}</td><td class="num">${fmt(a.data)}</td><td class="num">${fmt(a.cache)}</td>
+      <td class="num"><b>${fmt(a.total)}</b></td></tr>`;
+  }).join("");
+  $("apps").innerHTML = `<h2>Apps (top 30)</h2>
+    <p class="why">Gegevens = berichten, downloads, offline muziek/video in de app. Grote waarden kan je meestal in de app zelf verkleinen (bv. offline downloads verwijderen). Apps verwijderen komt in een volgende stap.</p>
+    <table><tr><th>App</th><th class="num">App</th><th class="num">Gegevens</th><th class="num">Cache</th><th class="num">Totaal</th></tr>${rows}</table>`;
+}
+
+function treeRow(path, size) {
+  const kids = childrenOf(path);
+  const name = path === ROOT ? "Interne opslag" : path.split("/").pop();
+  return `<div class="node" data-p="${esc(path)}">
+    <div class="row"><span class="tog">${kids.length ? "▸" : ""}</span>${cb(path, size)}<span class="name">${esc(name)}</span><span class="size">${fmt(size)}</span></div>
+    <div class="kids hidden"></div></div>`;
+}
+
+function renderFolders() {
+  const top = childrenOf(ROOT).sort((a, b) => b[1] - a[1]);
+  $("folders").innerHTML = `<h2>Mappen</h2><p class="why">Klik op ▸ om een map open te klappen.</p>
+    <div class="tree">${top.map(([p, s]) => treeRow(p, s)).join("")}</div>`;
+}
+
+document.addEventListener("click", e => {
+  const tog = e.target.closest(".tog");
+  if (!tog) return;
+  const node = tog.closest(".node");
+  const kidsEl = node.querySelector(":scope > .kids");
+  if (!kidsEl.dataset.loaded) {
+    kidsEl.innerHTML = childrenOf(node.dataset.p).sort((a, b) => b[1] - a[1]).map(([p, s]) => treeRow(p, s)).join("");
+    kidsEl.dataset.loaded = "1";
+  }
+  const open = kidsEl.classList.toggle("hidden") === false;
+  tog.textContent = open ? "▾" : "▸";
+});
+
+function renderFiles() {
+  const rows = scan.bigFiles.map(f => `<tr><td style="width:24px">${cb(f.path, f.size)}</td><td>${esc(rel(f.path))}</td>
+    <td class="num muted">${fmtAge(f.mtime)}</td><td class="num">${fmt(f.size)}</td></tr>`).join("");
+  $("files").innerHTML = `<h2>Grootste bestanden (boven 50 MB)</h2>
+    ${rows ? `<table><tr><th></th><th>Bestand</th><th class="num">Gewijzigd</th><th class="num">Grootte</th></tr>${rows}</table>` : '<p class="muted">Geen bestanden boven 50 MB.</p>'}`;
+}
+
+function renderTips() {
+  $("tips").innerHTML = `<h2>Ook op je gsm zelf nakijken</h2>
+    <ul style="margin:0;padding-left:20px">
+      <li><b>Galerij → menu → Prullenbak</b>: verwijderde foto's blijven daar 30 dagen en tellen mee.</li>
+      <li><b>Mijn bestanden → Prullenbak</b>: idem.</li>
+      <li><b>WhatsApp → Instellingen → Opslag en data → Opslag beheren</b>: toont grote bestanden per chat.</li>
+      <li><b>Spotify / Netflix / YouTube</b>: offline downloads verwijderen in de app zelf.</li>
+    </ul>
+    <p class="why" style="margin-top:8px">Let op: wat je hier via de pc verwijdert, gaat <b>niet</b> naar een prullenbak. De galerij kan nog even een leeg vakje tonen tot ze opnieuw scant.</p>`;
+}
+
+// ---------- Knoppen ----------
+if (!("usb" in navigator)) { status("Deze browser ondersteunt geen WebUSB. Gebruik Chrome of Edge.", "err"); $("connect").disabled = true; }
+
+$("connect").addEventListener("click", async () => {
+  $("connect").disabled = true; detail("");
+  try {
+    if (!adb) await connect();
+    $("intro").classList.add("hidden");
+    $("rescan").classList.remove("hidden");
+    await runScan();
+  } catch (e) { console.error(e); status("Er ging iets mis.", "err"); detail(String(e?.message ?? e)); }
+  finally { $("connect").disabled = false; }
+});
+$("rescan").addEventListener("click", async () => {
+  if (!adb) { status("Niet verbonden. Klik op 'Verbind en analyseer'.", "err"); return; }
+  $("rescan").disabled = true; detail("");
+  try { await runScan(); } catch (e) { console.error(e); status("Er ging iets mis.", "err"); detail(String(e?.message ?? e)); }
+  finally { $("rescan").disabled = false; }
+});
+$("selclear").addEventListener("click", clearSelection);
+$("seldel").addEventListener("click", () => deleteSelected().catch(e => { status("Fout bij verwijderen.", "err"); detail(String(e?.message ?? e)); $("seldel").disabled = false; }));
 </script>
 </body>
 </html>
